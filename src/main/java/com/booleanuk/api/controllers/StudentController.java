@@ -1,6 +1,8 @@
 package com.booleanuk.api.controllers;
 
+import com.booleanuk.api.models.Course;
 import com.booleanuk.api.models.Student;
+import com.booleanuk.api.repositories.CourseRepository;
 import com.booleanuk.api.repositories.StudentRepository;
 import com.booleanuk.api.responses.ErrorResponse;
 import com.booleanuk.api.responses.Response;
@@ -16,11 +18,14 @@ import org.springframework.web.bind.annotation.*;
 public class StudentController {
 
     @Autowired
-    private StudentRepository repository;
+    private StudentRepository studentRepository;
+
+    @Autowired
+    private CourseRepository courseRepository;
 
     @PostMapping
     public ResponseEntity<StudentResponse> create(@RequestBody Student student) {
-        this.repository.save(student);
+        this.studentRepository.save(student);
         StudentResponse response = new StudentResponse();
         response.set(student);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -29,13 +34,13 @@ public class StudentController {
     @GetMapping
     public ResponseEntity<StudentListResponse> getAll() {
         StudentListResponse response = new StudentListResponse();
-        response.set(this.repository.findAll());
+        response.set(this.studentRepository.findAll());
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("{id}")
     public ResponseEntity<Response<?>> getSpecific(@PathVariable int id) {
-        Student student = this.repository.findById(id).orElse(null);
+        Student student = this.studentRepository.findById(id).orElse(null);
         if (student == null) {
             ErrorResponse error = new ErrorResponse();
             error.set("A student with this id was not found.");
@@ -48,7 +53,7 @@ public class StudentController {
 
     @PutMapping("{id}")
     public ResponseEntity<Response<?>> update(@PathVariable int id, @RequestBody Student student) {
-        Student originalStudent = this.repository.findById(id).orElse(null);
+        Student originalStudent = this.studentRepository.findById(id).orElse(null);
         if (originalStudent == null) {
             ErrorResponse error = new ErrorResponse();
             error.set("Not found");
@@ -56,7 +61,7 @@ public class StudentController {
         }
         student.setId(id);
         try {
-            this.repository.save(student);
+            this.studentRepository.save(student);
         } catch (Exception e) {
             ErrorResponse error = new ErrorResponse();
             error.set("Bad request");
@@ -69,15 +74,69 @@ public class StudentController {
 
     @DeleteMapping("{id}")
     public ResponseEntity<Response<?>> delete(@PathVariable int id) {
-        Student student = this.repository.findById(id).orElse(null);
+        Student student = this.studentRepository.findById(id).orElse(null);
         if (student == null) {
             ErrorResponse error = new ErrorResponse();
             error.set("Not found");
             return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
         }
-        this.repository.delete(student);
+        this.studentRepository.delete(student);
         StudentResponse response = new StudentResponse();
         response.set(student);
         return ResponseEntity.ok(response);
+    }
+
+    // Create course for student
+    @PostMapping("{studentId}/courses/{courseId}")
+    public ResponseEntity<Response<?>> addCourseToStudent(
+            @PathVariable int studentId,
+            @PathVariable int courseId) {
+
+        Student student = this.studentRepository.findById(studentId).orElse(null);
+        Course course = this.courseRepository.findById(courseId).orElse(null);
+
+        if (student == null) {
+            ErrorResponse error = new ErrorResponse();
+            error.set("A student with this id was not found.");
+            return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+        } else if (course == null) {
+            ErrorResponse error = new ErrorResponse();
+            error.set("A course with this id was not found.");
+            return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+        }
+
+        student.getCourses().add(course);
+        this.studentRepository.save(student);
+
+        StudentResponse response = new StudentResponse();
+        response.set(student);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("{studentId}/courses/{courseId}")
+    public ResponseEntity<Response<?>> deleteCourseFromStudent(
+            @PathVariable int studentId,
+            @PathVariable int courseId) {
+
+        Student student = this.studentRepository.findById(studentId).orElse(null);
+        Course course = this.courseRepository.findById(courseId).orElse(null);
+
+        // TODO: Duplicate code, should refactor
+        if (student == null) {
+            ErrorResponse error = new ErrorResponse();
+            error.set("A student with this id was not found.");
+            return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+        } else if (course == null) {
+            ErrorResponse error = new ErrorResponse();
+            error.set("A course with this id was not found.");
+            return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+        }
+
+        student.getCourses().remove(course);
+        this.studentRepository.save(student);
+
+        StudentResponse response = new StudentResponse();
+        response.set(student);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }

@@ -1,8 +1,12 @@
 package com.booleanuk.api.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -22,21 +26,21 @@ public class Student {
     @Column
     private String dateOfBirth;
 
-    @Column
-    private String courseTitle;
-
-    @Column
-    private String courseStartDate;
+    @OneToMany
+    @JoinTable(
+            name = "student_course",
+            joinColumns = @JoinColumn(name = "student_id"),
+            inverseJoinColumns = @JoinColumn(name = "course_id")
+    )
+    private Set<Course> courses = new HashSet<>();
 
     @Column
     private int averageGrade;
 
-    public Student(String firstName, String lastName, String dateOfBirth, String courseTitle, String courseStartDate, int averageGrade) {
+    public Student(String firstName, String lastName, String dateOfBirth, int averageGrade) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.dateOfBirth = dateOfBirth;
-        this.courseTitle = courseTitle;
-        this.courseStartDate = courseStartDate;
         this.averageGrade = averageGrade;
     }
 }
